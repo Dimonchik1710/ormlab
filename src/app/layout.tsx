@@ -23,6 +23,9 @@ export const metadata: Metadata = {
     siteName: "ormlab",
     type: "website",
   },
+  verification: {
+    google: "jitWVo-t4WneiAVKotYx4do9bezll7IXHD4PmZvWfMk",
+  },
 };
 
 export default function RootLayout({
