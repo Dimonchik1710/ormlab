@@ -1,5 +1,8 @@
 // Supported database dialects
-export type SqlDialect = "postgresql" | "mysql" | "sqlite";
+import type { Dialect } from "@/lib/shared/types";
+
+// Alias kept for backward compatibility — SqlDialect === Dialect
+export type SqlDialect = Dialect;
 
 // Represents a single column in a table
 export interface ColumnDefinition {

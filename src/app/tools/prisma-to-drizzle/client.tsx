@@ -4,25 +4,44 @@ import { useState } from "react";
 import CodeEditor from "@/components/tools/CodeEditor";
 import CodeOutput, { OutputActions } from "@/components/tools/CodeOutput";
 import DialectSelector from "@/components/tools/DialectSelector";
-import { parseSql } from "@/lib/sql-to-drizzle/converter";
-import { formatDrizzleSchema } from "@/lib/sql-to-drizzle/formatter";
+import { parsePrismaSchema } from "@/lib/prisma-to-drizzle/parser";
+import { formatDrizzleSchema } from "@/lib/prisma-to-drizzle/formatter";
 import type { Dialect } from "@/lib/shared/types";
 
-const EXAMPLE_SQL = `CREATE TABLE users (
-  id SERIAL PRIMARY KEY,
-  email VARCHAR(255) NOT NULL UNIQUE,
-  name VARCHAR(100),
-  created_at TIMESTAMP DEFAULT NOW(),
-  is_active BOOLEAN DEFAULT true
-);
+const EXAMPLE_PRISMA = `datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
 
-CREATE TABLE posts (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  title VARCHAR(255) NOT NULL,
-  body TEXT,
-  published_at TIMESTAMP
-);`;
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+  GUEST
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  role      Role     @default(USER)
+  posts     Post[]
+  createdAt DateTime @default(now())
+
+  @@map("users")
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  title     String
+  body      String?
+  published Boolean  @default(false)
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}`;
 
 interface ConversionState {
   code: string;
@@ -30,8 +49,8 @@ interface ConversionState {
   errors: string[];
 }
 
-export default function SqlToDrizzleClient() {
-  const [sql, setSql] = useState("");
+export default function PrismaToDrizzleClient() {
+  const [prisma, setPrisma] = useState("");
   const [dialect, setDialect] = useState<Dialect>("postgresql");
   const [result, setResult] = useState<ConversionState>({
     code: "",
@@ -41,11 +60,11 @@ export default function SqlToDrizzleClient() {
   const [isConverting, setIsConverting] = useState(false);
 
   const handleConvert = () => {
-    if (!sql.trim()) {
+    if (!prisma.trim()) {
       setResult({
         code: "",
         warnings: [],
-        errors: ["SQL input is empty. Paste a CREATE TABLE statement."],
+        errors: ["Prisma schema input is empty. Paste a schema.prisma file."],
       });
       return;
     }
@@ -54,9 +73,26 @@ export default function SqlToDrizzleClient() {
 
     setTimeout(() => {
       try {
-        const parsed = parseSql(sql, dialect);
+        const parsed = parsePrismaSchema(prisma);
 
-        if (parsed.errors.length > 0 && parsed.tables.length === 0) {
+        // Auto-detect dialect from datasource if present
+        let effectiveDialect = dialect;
+        if (parsed.schema.datasource?.provider) {
+          const provider = parsed.schema.datasource.provider.toLowerCase();
+          if (provider === "postgresql" || provider === "postgres") {
+            effectiveDialect = "postgresql";
+          } else if (provider === "mysql") {
+            effectiveDialect = "mysql";
+          } else if (provider === "sqlite") {
+            effectiveDialect = "sqlite";
+          }
+        }
+
+        if (
+          parsed.errors.length > 0 &&
+          parsed.schema.models.length === 0 &&
+          parsed.schema.enums.length === 0
+        ) {
           setResult({
             code: "",
             warnings: parsed.warnings,
@@ -66,16 +102,12 @@ export default function SqlToDrizzleClient() {
           return;
         }
 
-        const formatted = formatDrizzleSchema(parsed.tables, {
-          dialect,
-          includeImports: true,
-          includeRelations: true,
-        });
+        const formatted = formatDrizzleSchema(parsed.schema, effectiveDialect);
 
         setResult({
-          code: formatted.code,
+          code: formatted.drizzleCode ?? "",
           warnings: [...parsed.warnings, ...formatted.warnings],
-          errors: parsed.errors,
+          errors: [...parsed.errors, ...formatted.errors],
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -91,11 +123,11 @@ export default function SqlToDrizzleClient() {
   };
 
   const handleLoadExample = () => {
-    setSql(EXAMPLE_SQL);
+    setPrisma(EXAMPLE_PRISMA);
   };
 
   const handleClear = () => {
-    setSql("");
+    setPrisma("");
     setResult({ code: "", warnings: [], errors: [] });
   };
 
@@ -112,6 +144,9 @@ export default function SqlToDrizzleClient() {
               <a href="/" className="hover:text-gray-900">
                 Home
               </a>
+              <a href="/tools/sql-to-drizzle" className="hover:text-gray-900">
+                SQL → Drizzle
+              </a>
             </nav>
           </div>
         </div>
@@ -121,10 +156,10 @@ export default function SqlToDrizzleClient() {
       <div className="max-w-7xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
         <div className="max-w-3xl">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
-            SQL to Drizzle ORM Converter
+            Prisma to Drizzle ORM Converter
           </h1>
           <p className="mt-3 text-lg text-gray-600">
-            Paste your PostgreSQL <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">CREATE TABLE</code> statements and get a ready-to-use Drizzle ORM schema. Works 100% in your browser — your SQL never leaves this page.
+            Paste your <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">schema.prisma</code> file and get a ready-to-use Drizzle ORM schema. Works 100% in your browser — your schema never leaves this page.
           </p>
         </div>
       </div>
@@ -133,7 +168,12 @@ export default function SqlToDrizzleClient() {
       <div className="max-w-7xl mx-auto px-4 pb-12 sm:px-6 lg:px-8">
         {/* Controls */}
         <div className="flex flex-wrap items-end gap-4 mb-6">
-          <DialectSelector value={dialect} onChange={setDialect} />
+          <DialectSelector
+  value={dialect}
+  onChange={setDialect}
+  label="Target Dialect"
+  availableDialects={["postgresql", "mysql", "sqlite"]}
+/>
           <div className="flex gap-2">
             <button
               onClick={handleLoadExample}
@@ -161,23 +201,24 @@ export default function SqlToDrizzleClient() {
           </button>
         </div>
 
-        {/* Editor + Output — using CSS grid with explicit row heights for perfect alignment */}
-        <div className="grid gap-x-6 gap-y-2 lg:grid-cols-2" style={{ gridTemplateRows: "2rem 24rem" }}>
-          {/* Row 1: headers */}
+        {/* Editor + Output — CSS grid for perfect alignment */}
+        <div
+          className="grid gap-x-6 gap-y-2 lg:grid-cols-2"
+          style={{ gridTemplateRows: "2rem 24rem" }}
+        >
           <div className="flex items-center justify-between h-8">
-            <label className="text-sm font-medium text-gray-700">SQL Input</label>
+            <label className="text-sm font-medium text-gray-700">Prisma Schema</label>
           </div>
           <div className="flex items-center justify-between h-8">
             <label className="text-sm font-medium text-gray-700">Drizzle Schema</label>
             <OutputActions code={result.code} />
           </div>
 
-          {/* Row 2: content boxes */}
           <div className="h-96">
             <CodeEditor
-              value={sql}
-              onChange={setSql}
-              placeholder={`CREATE TABLE users (\n  id SERIAL PRIMARY KEY,\n  email VARCHAR(255) NOT NULL\n);`}
+              value={prisma}
+              onChange={setPrisma}
+              placeholder={`datasource db {\n  provider = "postgresql"\n}\n\nmodel User {\n  id    Int    @id @default(autoincrement())\n  email String @unique\n}`}
             />
           </div>
           <div className="h-96">
@@ -198,37 +239,42 @@ export default function SqlToDrizzleClient() {
               How it works
             </h2>
             <p className="text-gray-700 mb-4">
-              This tool parses your PostgreSQL <code className="px-1 py-0.5 bg-white rounded text-sm">CREATE TABLE</code> statements and generates equivalent Drizzle ORM schema definitions in TypeScript. The conversion happens entirely in your browser — no data is sent to any server.
+              This tool parses your Prisma schema and generates equivalent Drizzle ORM schema definitions in TypeScript. It auto-detects your database dialect from the <code className="px-1 py-0.5 bg-white rounded text-sm">datasource</code> block and produces code for PostgreSQL, MySQL, or SQLite.
+            </p>
+            <p className="text-gray-700 mb-4">
+              The conversion happens entirely in your browser — no data is sent to any server.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-900 mt-8 mb-3">
               What&apos;s supported
             </h3>
             <ul className="list-disc list-inside space-y-1 text-gray-700">
-              <li>Common PostgreSQL types: VARCHAR, TEXT, INTEGER, SERIAL, BIGINT, BOOLEAN, TIMESTAMP, DATE, NUMERIC, JSON, JSONB, UUID</li>
-              <li>Constraints: PRIMARY KEY, UNIQUE, NOT NULL, DEFAULT, REFERENCES (foreign keys)</li>
-              <li>Multiple CREATE TABLE statements in one input</li>
-              <li>Inline and table-level constraints</li>
-              <li>ON DELETE actions: CASCADE, SET NULL, RESTRICT, NO ACTION</li>
-              <li>DEFAULT values including <code className="px-1 py-0.5 bg-white rounded text-sm">NOW()</code> and <code className="px-1 py-0.5 bg-white rounded text-sm">CURRENT_TIMESTAMP</code></li>
+              <li>All Prisma scalar types: String, Int, BigInt, Float, Decimal, Boolean, DateTime, Json, Bytes</li>
+              <li>Custom enums → <code className="px-1 py-0.5 bg-white rounded text-sm">pgEnum</code> (Postgres) or TypeScript union types (MySQL/SQLite)</li>
+              <li>Field attributes: <code className="px-1 py-0.5 bg-white rounded text-sm">@id</code>, <code className="px-1 py-0.5 bg-white rounded text-sm">@unique</code>, <code className="px-1 py-0.5 bg-white rounded text-sm">@default</code>, <code className="px-1 py-0.5 bg-white rounded text-sm">@map</code>, <code className="px-1 py-0.5 bg-white rounded text-sm">@relation</code></li>
+              <li>Model attributes: <code className="px-1 py-0.5 bg-white rounded text-sm">@@map</code>, <code className="px-1 py-0.5 bg-white rounded text-sm">@@id</code>, <code className="px-1 py-0.5 bg-white rounded text-sm">@@unique</code>, <code className="px-1 py-0.5 bg-white rounded text-sm">@@index</code></li>
+              <li>Auto-increment primary keys → <code className="px-1 py-0.5 bg-white rounded text-sm">serial()</code> / <code className="px-1 py-0.5 bg-white rounded text-sm">int().autoincrement()</code></li>
+              <li>Foreign key relations with <code className="px-1 py-0.5 bg-white rounded text-sm">onDelete</code> actions</li>
+              <li>Auto-detection of dialect from <code className="px-1 py-0.5 bg-white rounded text-sm">datasource</code> block</li>
+              <li>Optional and list fields (<code className="px-1 py-0.5 bg-white rounded text-sm">String?</code>, <code className="px-1 py-0.5 bg-white rounded text-sm">Post[]</code>)</li>
             </ul>
 
             <h3 className="text-xl font-semibold text-gray-900 mt-8 mb-3">
-              Not yet supported
+              Requires manual attention
             </h3>
             <ul className="list-disc list-inside space-y-1 text-gray-700">
-              <li>Composite primary/foreign keys (a warning is shown; add <code className="px-1 py-0.5 bg-white rounded text-sm">primaryKey()</code> manually)</li>
-              <li>CHECK constraints</li>
-              <li>Indexes (<code className="px-1 py-0.5 bg-white rounded text-sm">CREATE INDEX</code>)</li>
-              <li>Custom enums and user-defined types</li>
-              <li>MySQL and SQLite dialects (coming soon)</li>
+              <li>Composite primary keys (<code className="px-1 py-0.5 bg-white rounded text-sm">@@id([a, b])</code>) — warning shown, add <code className="px-1 py-0.5 bg-white rounded text-sm">primaryKey()</code> helper manually</li>
+              <li><code className="px-1 py-0.5 bg-white rounded text-sm">@updatedAt</code> — no direct Drizzle equivalent, use <code className="px-1 py-0.5 bg-white rounded text-sm">.$onUpdate()</code></li>
+              <li><code className="px-1 py-0.5 bg-white rounded text-sm">@default(cuid())</code> / <code className="px-1 py-0.5 bg-white rounded text-sm">@default(uuid())</code> — set with a manual default function</li>
+              <li>Indexes (<code className="px-1 py-0.5 bg-white rounded text-sm">@@index</code>) — Drizzle syntax differs, add via table callback</li>
+              <li>Composite types and views (Prisma 5+) — not supported yet</li>
             </ul>
 
             <h3 className="text-xl font-semibold text-gray-900 mt-8 mb-3">
               Privacy
             </h3>
             <p className="text-gray-700">
-              The converter runs entirely client-side in your browser. Your SQL input is never sent to our servers, stored, or logged. You can verify this by checking the Network tab in your browser&apos;s DevTools.
+              The converter runs entirely client-side in your browser. Your schema is never sent to our servers, stored, or logged. You can verify this by checking the Network tab in your browser&apos;s DevTools.
             </p>
           </div>
         </div>
@@ -302,7 +348,7 @@ export default function SqlToDrizzleClient() {
               © 2026 ormlab.dev · Built with Next.js, deployed on Vercel
             </p>
             <p className="text-xs text-gray-400">
-              Not affiliated with Drizzle Team
+              Not affiliated with Drizzle Team or Prisma
             </p>
           </div>
         </div>
