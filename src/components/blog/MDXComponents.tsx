@@ -112,17 +112,30 @@ export const mdxComponents: MDXComponents = {
       {children}
     </blockquote>
   ),
-  code: ({ children, ...props }: ComponentPropsWithoutRef<"code">) => (
-    <code
-      className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[0.9em] text-gray-900 before:content-none after:content-none"
-      {...props}
-    >
-      {children}
-    </code>
-  ),
+  code: ({ children, className, ...props }: ComponentPropsWithoutRef<"code">) => {
+    // Block code (inside <pre>) is detected by rehype-prism-plus adding "language-*" class.
+    // Leave it alone so the Prism theme can style it on a dark background.
+    const isBlock = typeof className === "string" && className.includes("language-");
+    if (isBlock) {
+      return (
+        <code className={className} {...props}>
+          {children}
+        </code>
+      );
+    }
+    return (
+      <code
+        className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[0.9em] text-gray-900 before:content-none after:content-none"
+        {...props}
+      >
+        {children}
+      </code>
+    );
+  },
   pre: ({ children, ...props }: ComponentPropsWithoutRef<"pre">) => (
     <pre
-      className="my-6 overflow-x-auto rounded-lg border border-gray-200 bg-[#0b1021] p-5 text-[14px] leading-[1.6] text-gray-100 shadow-sm"
+      className="my-6 overflow-x-auto rounded-lg border border-gray-800 p-5 text-[14px] leading-[1.6] shadow-sm"
+      style={{ background: "#0b1021", color: "#e6edf3" }}
       {...props}
     >
       {children}

@@ -1,23 +1,41 @@
-/* Custom Prism theme scoped to blog code blocks. */
+/* Custom Prism theme scoped to blog code blocks.
+ * Dark background is enforced on pre[class*="language-"] so it beats
+ * Tailwind utility classes via a more specific selector.
+ */
 
-.prose-blog pre[class*="language-"],
-.prose-blog code[class*="language-"] {
+.prose-blog pre[class*="language-"] {
+  background: #0b1021 !important;
   color: #e6edf3;
-  background: transparent;
-  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  padding: 1.25rem;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid #1f2937;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   font-size: 14px;
+  line-height: 1.6;
   text-shadow: none;
   tab-size: 2;
 }
 
-.prose-blog pre[class*="language-"] {
+.prose-blog pre[class*="language-"] code,
+.prose-blog code[class*="language-"] {
+  background: transparent !important;
+  color: inherit;
   padding: 0;
-  margin: 0;
-  overflow-x: auto;
+  border: 0;
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: inherit;
+  text-shadow: none;
 }
 
-.prose-blog code[class*="language-"]::selection,
-.prose-blog pre[class*="language-"] ::selection {
+.prose-blog pre[class*="language-"] code::before,
+.prose-blog pre[class*="language-"] code::after {
+  content: none;
+}
+
+.prose-blog pre[class*="language-"] ::selection,
+.prose-blog code[class*="language-"] ::selection {
   background: #264f78;
   color: inherit;
 }
