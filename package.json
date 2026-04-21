@@ -9,11 +9,16 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "gray-matter": "^4.0.3",
     "next": "16.2.4",
+    "next-mdx-remote": "^6.0.0",
     "node-sql-parser": "^5.4.0",
     "prismjs": "^1.30.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "rehype-prism-plus": "^2.0.2",
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

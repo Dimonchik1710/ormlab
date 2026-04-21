@@ -1,0 +1,375 @@
+---
+title: "How to Migrate from Prisma to Drizzle Without Headaches"
+description: "A battle-tested guide to migrating from Prisma to Drizzle ORM: schema mapping, query translation, relations, migrations, and the real gotchas nobody warns you about."
+date: "2026-04-21"
+author: "ormlab"
+tags: ["drizzle", "prisma", "migration", "typescript", "orm"]
+keywords:
+  - "prisma to drizzle"
+  - "migrate prisma to drizzle"
+  - "drizzle orm migration"
+  - "drizzle vs prisma"
+  - "prisma drizzle migration guide"
+  - "how to migrate from prisma"
+  - "drizzle orm tutorial"
+canonical: "https://ormlab.dev/blog/how-to-migrate-from-prisma-to-drizzle-without-headaches"
+---
+
+You shipped with Prisma because it was the obvious pick. Now your Lambda cold starts are crying, `@prisma/client` weighs 40+ MB, every schema change triggers a codegen dance, and you just spent an afternoon fighting `prisma migrate` because your shadow database refused to drop a constraint. You don't hate Prisma. You just want your queries to be boring again.
+
+This guide is the **Prisma to Drizzle migration** playbook for people who already know what an ORM is. No "what is TypeScript" filler. We'll map schemas, translate queries, rewrite relations, replace `prisma migrate`, and I'll tell you exactly where the migration will try to bite you.
+
+## Why backend teams are ditching Prisma for Drizzle
+
+The pitch is simple, but the reasons are concrete:
+
+- **Cold starts.** Prisma ships a query engine binary (`libquery_engine`) plus a generated client. On serverless, that's hundreds of milliseconds you pay on every cold lambda. Drizzle is a thin TypeScript wrapper around `pg` / `mysql2` / `better-sqlite3`. No engine, no RPC, no pain.
+- **Bundle size.** `node_modules/.prisma` can be **40–70 MB** after `prisma generate`. Drizzle's runtime is under **200 KB**. If you've ever hit Vercel's function size limit, you already know why this matters.
+- **SQL that looks like SQL.** Drizzle's query builder is intentionally close to raw SQL. No inventing `select: { ... }` DSL trees. You write `.select().from(users).where(eq(users.id, 1))` and you know exactly what SQL fires.
+- **Types without codegen.** Drizzle infers types from your schema. No `prisma generate` step before your IDE stops lying about `User.email`.
+- **Edge runtime support.** Drizzle runs on Cloudflare Workers, Vercel Edge, and Bun without adapters fighting each other.
+
+None of this makes Prisma bad. It makes Drizzle better for teams who care about the runtime bill.
+
+## Prisma vs Drizzle: the no-BS comparison
+
+| Dimension | Prisma | Drizzle |
+| --- | --- | --- |
+| Runtime size | ~40 MB (client + engine) | < 200 KB |
+| Cold start impact | 200–800 ms | ~5–20 ms |
+| Query API | DSL (`findMany`, `include`) | SQL-like builder |
+| Type generation | `prisma generate` step | Inferred from schema |
+| Migrations | `prisma migrate` (SQL + shadow DB) | `drizzle-kit generate` |
+| Raw SQL escape hatch | `$queryRaw` (typed weakly) | `sql` template (typed via helpers) |
+| Relations | Implicit in `include` | Explicit via `relations()` |
+| Edge/Workers | Requires Data Proxy or Accelerate | Native |
+| Studio / GUI | Prisma Studio | Drizzle Studio |
+| Learning curve | Easy (DSL hides SQL) | Moderate (you must know SQL) |
+
+If you don't know SQL, Prisma will stay easier. If you do, Drizzle will feel like someone finally got out of your way.
+
+## The migration in 5 steps
+
+The core insight: **you don't have to migrate everything at once**. Prisma and Drizzle can share the same database. You introduce Drizzle next to Prisma, migrate one service or one route at a time, delete Prisma when the last `prisma.*` call is gone.
+
+### 1. Map your Prisma schema to a Drizzle schema
+
+Start with the model. Here's a typical `schema.prisma`:
+
+```prisma
+// schema.prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  posts     Post[]
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+```
+
+The Drizzle equivalent in pure TypeScript:
+
+```ts
+// src/db/schema.ts
+import { pgTable, text, boolean, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+import { createId } from "@paralleldrive/cuid2";
+
+export const roleEnum = pgEnum("role", ["USER", "ADMIN"]);
+
+export const users = pgTable("User", {
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  email: text("email").notNull().unique(),
+  name: text("name"),
+  role: roleEnum("role").notNull().default("USER"),
+  createdAt: timestamp("createdAt", { precision: 3 }).notNull().defaultNow(),
+});
+
+export const posts = pgTable("Post", {
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  title: text("title").notNull(),
+  content: text("content"),
+  published: boolean("published").notNull().default(false),
+  authorId: text("authorId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("createdAt", { precision: 3 }).notNull().defaultNow(),
+});
+
+export const usersRelations = relations(users, ({ many }) => ({
+  posts: many(posts),
+}));
+
+export const postsRelations = relations(posts, ({ one }) => ({
+  author: one(users, {
+    fields: [posts.authorId],
+    references: [users.id],
+  }),
+}));
+```
+
+Two things to notice. First, **Prisma's default table names are PascalCase** (`"User"`, `"Post"`) — you must pass those exact names to `pgTable()` or Drizzle will talk to `users` and `posts` and find nothing. Second, Prisma's `@default(cuid())` isn't a Postgres function; it runs in the Prisma client. In Drizzle you re-implement it with `$defaultFn` and the `@paralleldrive/cuid2` package.
+
+If you don't want to hand-write this for 40 models, the [Prisma to Drizzle converter](https://ormlab.dev/tools/prisma-to-drizzle) does the boilerplate in one click. Fix the exotic stuff by hand.
+
+### 2. Replace the Prisma client with a Drizzle instance
+
+The client wiring is the shortest file in the migration. Before:
+
+```ts
+// src/db/prisma.ts
+import { PrismaClient } from "@prisma/client";
+
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient();
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+```
+
+After:
+
+```ts
+// src/db/index.ts
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import * as schema from "./schema";
+
+const globalForDb = globalThis as unknown as { pool?: Pool };
+
+const pool =
+  globalForDb.pool ??
+  new Pool({
+    connectionString: process.env.DATABASE_URL,
+    max: 10,
+  });
+
+if (process.env.NODE_ENV !== "production") globalForDb.pool = pool;
+
+export const db = drizzle(pool, { schema });
+export type DB = typeof db;
+```
+
+That `{ schema }` argument is not decorative — it's what enables the relational `db.query.users.findMany({ with: { posts: true } })` API. Skip it and half the ergonomic Drizzle APIs silently stop working.
+
+For serverless Postgres (Neon, Vercel Postgres), swap `drizzle-orm/node-postgres` for `drizzle-orm/neon-http` or `drizzle-orm/neon-serverless`. For Cloudflare D1, `drizzle-orm/d1`. The schema file doesn't change.
+
+### 3. Translate your queries
+
+This is the part that takes real time, because it's a find-replace across your codebase, not a config change. The patterns are consistent, though.
+
+**Simple reads:**
+
+```ts
+// Prisma
+const user = await prisma.user.findUnique({ where: { email } });
+const users = await prisma.user.findMany({
+  where: { role: "ADMIN" },
+  orderBy: { createdAt: "desc" },
+  take: 20,
+});
+
+// Drizzle
+import { eq, desc } from "drizzle-orm";
+import { users } from "@/db/schema";
+
+const [user] = await db.select().from(users).where(eq(users.email, email));
+
+const admins = await db
+  .select()
+  .from(users)
+  .where(eq(users.role, "ADMIN"))
+  .orderBy(desc(users.createdAt))
+  .limit(20);
+```
+
+**Relational reads** (the part everyone worries about):
+
+```ts
+// Prisma
+const withPosts = await prisma.user.findMany({
+  where: { role: "ADMIN" },
+  include: {
+    posts: { where: { published: true }, orderBy: { createdAt: "desc" } },
+  },
+});
+
+// Drizzle — Queries API (one round-trip, JSON aggregated in Postgres)
+const withPosts = await db.query.users.findMany({
+  where: (u, { eq }) => eq(u.role, "ADMIN"),
+  with: {
+    posts: {
+      where: (p, { eq }) => eq(p.published, true),
+      orderBy: (p, { desc }) => [desc(p.createdAt)],
+    },
+  },
+});
+```
+
+The Drizzle Queries API (`db.query.*`) is the closest thing to Prisma's `include`. Under the hood it builds a single SQL statement with a `json_agg` subquery — one round-trip, no N+1. When you outgrow it (custom aggregates, window functions, weird joins), you drop to `db.select()` and write the join yourself. Prisma doesn't give you that exit ramp.
+
+**Writes and transactions:**
+
+```ts
+// Prisma
+await prisma.$transaction(async (tx) => {
+  const user = await tx.user.create({ data: { email } });
+  await tx.post.create({ data: { title: "Hello", authorId: user.id } });
+});
+
+// Drizzle
+await db.transaction(async (tx) => {
+  const [user] = await tx
+    .insert(users)
+    .values({ email })
+    .returning({ id: users.id });
+
+  await tx.insert(posts).values({ title: "Hello", authorId: user.id });
+});
+```
+
+`.returning()` is your friend. Prisma always returns the row; Drizzle makes you ask for it, which is what SQL actually does.
+
+### 4. Run Prisma and Drizzle side-by-side during the cutover
+
+This is the headache-free part nobody explains. You don't flip a switch. You install Drizzle alongside Prisma, both point at the same `DATABASE_URL`, and you migrate code path by code path:
+
+```ts
+// src/services/user-service.ts
+import { prisma } from "@/db/prisma";         // old
+import { db } from "@/db";                     // new
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
+// Migrated: reads go through Drizzle
+export async function getUser(id: string) {
+  const [user] = await db.select().from(users).where(eq(users.id, id));
+  return user ?? null;
+}
+
+// Not migrated yet: writes still go through Prisma until tested
+export async function createUser(email: string) {
+  return prisma.user.create({ data: { email } });
+}
+```
+
+Deploy, monitor, migrate the next function. When `grep -r "from \"@/db/prisma\"" src` returns nothing, you `npm uninstall @prisma/client prisma` and delete the schema file. Clean exit.
+
+### 5. Replace `prisma migrate` with `drizzle-kit`
+
+Prisma owns your migrations folder. Drizzle has its own. The safe move during migration: **freeze Prisma migrations, generate a baseline with drizzle-kit, add new changes with drizzle-kit from that point on.**
+
+```ts
+// drizzle.config.ts
+import { defineConfig } from "drizzle-kit";
+
+export default defineConfig({
+  schema: "./src/db/schema.ts",
+  out: "./drizzle",
+  dialect: "postgresql",
+  dbCredentials: { url: process.env.DATABASE_URL! },
+  // Match whatever Prisma did so diffs don't include identifier case churn
+  casing: "preserve",
+});
+```
+
+Then:
+
+```bash
+# Pull the live schema so drizzle-kit knows the starting state
+npx drizzle-kit introspect
+
+# Future schema changes
+npx drizzle-kit generate   # creates SQL in ./drizzle
+npx drizzle-kit migrate    # applies it
+```
+
+Don't try to "convert" your Prisma migration history. It's a trap. Baseline from the current DB state and move forward.
+
+## Gotchas that will bite you (so fix them now)
+
+A short list, from scars:
+
+- **`null` vs `undefined`.** Prisma treats both as "don't touch this column" in updates. Drizzle treats `null` as "set to NULL" and ignores keys you didn't pass. If you were relying on `undefined` clearing a field in Prisma (you weren't, but just in case), re-check your update paths.
+- **Casing.** Prisma's default schema uses camelCase fields mapped to camelCase columns (`createdAt` column, not `created_at`). If you migrated partway with `@@map` directives, introspect the live DB before writing the Drizzle schema by hand.
+- **`findFirst` vs `findUnique`.** Drizzle's `.select()` always returns an array. You'll write `const [row] = ...` a lot. Make peace with it.
+- **No lazy relation loading.** In Drizzle, if you didn't ask for a relation in `with: {}`, it isn't there. No `user.posts` magic. This is a feature — it means your queries are predictable — but it means you must look at call sites.
+- **`createMany` returns count, not rows.** In Postgres use `.returning()` explicitly if you need the inserted rows. Prisma would hide this from you.
+- **Raw SQL.** Replace `prisma.$queryRaw` with Drizzle's `sql` template tag. Pass parameters through `${}` — it's parameterized, not string-concatenated.
+
+## Should you actually migrate?
+
+Yes, if: you're on serverless/edge, your bundle size matters, you care about runtime performance, you want your queries to read like SQL, or you've hit a Prisma wall (Data Proxy costs, generated client bloat, engine binary incompatibility).
+
+No, if: your team is three people, you ship features faster than you ship infrastructure, you lean heavily on Prisma Studio for non-dev stakeholders, or you've never felt a single pain from Prisma. "Works fine" is a valid answer. Don't migrate for fashion.
+
+## Speed up the boring part
+
+Hand-converting 40 Prisma models to Drizzle tables is the least valuable hour of this migration. Paste your `schema.prisma` into our [free Prisma to Drizzle converter](https://ormlab.dev/tools/prisma-to-drizzle) and get the Drizzle schema — enums, relations, defaults, and all — instantly, in your browser. Nothing leaves your machine.
+
+Already on raw SQL? The [SQL to Drizzle converter](https://ormlab.dev/tools/sql-to-drizzle) does the same for `CREATE TABLE` dumps.
+
+## FAQ
+
+### Can I run Prisma and Drizzle at the same time?
+
+Yes. They're both just clients talking to Postgres/MySQL/SQLite. Point them at the same `DATABASE_URL`, migrate route by route, uninstall Prisma when the last import is gone. This is the lowest-risk migration path and the one I recommend.
+
+### Is Drizzle really faster than Prisma?
+
+For query execution, the difference is measurable but not dramatic — Drizzle skips the RPC hop to the query engine, saving roughly 5–20 ms per query. The big wins are **cold starts** (no engine binary to load) and **bundle size** (no generated client). On a warm Node server handling thousands of RPS, both are fine.
+
+### Does Drizzle have something like Prisma's `.include`?
+
+Yes — the Queries API: `db.query.users.findMany({ with: { posts: true } })`. It generates a single SQL statement with JSON aggregation, so no N+1. For everything else, you drop to `db.select()` and write joins explicitly.
+
+### What happens to my existing `prisma/migrations` folder?
+
+Freeze it. Don't try to "convert" migration files. Run `drizzle-kit introspect` against your live database to generate a Drizzle schema that matches the current state, then baseline from there. Future migrations go through `drizzle-kit generate`.
+
+### Does Drizzle work with Neon, Supabase, PlanetScale, Cloudflare D1?
+
+Yes. Drizzle has first-class drivers for Neon (`drizzle-orm/neon-http`, `drizzle-orm/neon-serverless`), Supabase (standard `node-postgres`), PlanetScale (`drizzle-orm/planetscale-serverless`), and Cloudflare D1 (`drizzle-orm/d1`). The schema file is identical; only the client setup changes.
+
+### Is there a Drizzle equivalent of Prisma Studio?
+
+Yes — Drizzle Studio. Run `npx drizzle-kit studio` and you get a local web UI to browse and edit rows. Feature-wise it's close to Prisma Studio; visually it's a little less polished and a lot faster.
+
+### How long does a real Prisma to Drizzle migration take?
+
+For a project with ~20 models and ~100 query call sites, a single engineer can do it in 2–4 days of focused work — most of it is translating query call sites, not schema conversion. Teams that run both ORMs in parallel and migrate incrementally usually finish in 1–2 weeks without any downtime.
+
+### Will I lose type safety during the migration?
+
+No, as long as you don't hand-maintain two schemas. Drizzle infers types from `schema.ts` automatically. Prisma keeps inferring from `schema.prisma`. As long as both describe the same tables, you're fine. The moment they diverge, delete the one that isn't the source of truth.
+
+---
+
+## Try our free tools
+
+Stop writing schema boilerplate. These tools run 100% in your browser — your schema never leaves your machine.
+
+- **[Prisma to Drizzle Converter](https://ormlab.dev/tools/prisma-to-drizzle)** — paste your `schema.prisma`, get Drizzle TypeScript instantly.
+- **[SQL to Drizzle Converter](https://ormlab.dev/tools/sql-to-drizzle)** — paste `CREATE TABLE` statements, get a Drizzle schema.
+
+Open-source, no signup, no tracking. [Fork it on GitHub](https://github.com/Dimonchik1710/ormlab).

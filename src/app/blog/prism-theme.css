@@ -1,0 +1,107 @@
+/* Custom Prism theme scoped to blog code blocks. */
+
+.prose-blog pre[class*="language-"],
+.prose-blog code[class*="language-"] {
+  color: #e6edf3;
+  background: transparent;
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px;
+  text-shadow: none;
+  tab-size: 2;
+}
+
+.prose-blog pre[class*="language-"] {
+  padding: 0;
+  margin: 0;
+  overflow-x: auto;
+}
+
+.prose-blog code[class*="language-"]::selection,
+.prose-blog pre[class*="language-"] ::selection {
+  background: #264f78;
+  color: inherit;
+}
+
+.prose-blog .token.comment,
+.prose-blog .token.prolog,
+.prose-blog .token.doctype,
+.prose-blog .token.cdata {
+  color: #8b949e;
+  font-style: italic;
+}
+
+.prose-blog .token.punctuation {
+  color: #c9d1d9;
+}
+
+.prose-blog .token.property,
+.prose-blog .token.tag,
+.prose-blog .token.boolean,
+.prose-blog .token.number,
+.prose-blog .token.constant,
+.prose-blog .token.symbol {
+  color: #79c0ff;
+}
+
+.prose-blog .token.selector,
+.prose-blog .token.attr-name,
+.prose-blog .token.string,
+.prose-blog .token.char,
+.prose-blog .token.builtin,
+.prose-blog .token.inserted {
+  color: #a5d6ff;
+}
+
+.prose-blog .token.operator,
+.prose-blog .token.entity,
+.prose-blog .token.url,
+.prose-blog .language-css .token.string,
+.prose-blog .style .token.string {
+  color: #ff7b72;
+}
+
+.prose-blog .token.atrule,
+.prose-blog .token.attr-value,
+.prose-blog .token.keyword {
+  color: #ff7b72;
+}
+
+.prose-blog .token.function,
+.prose-blog .token.class-name {
+  color: #d2a8ff;
+}
+
+.prose-blog .token.regex,
+.prose-blog .token.important,
+.prose-blog .token.variable {
+  color: #ffa657;
+}
+
+.prose-blog .token.important,
+.prose-blog .token.bold {
+  font-weight: 600;
+}
+
+.prose-blog .token.italic {
+  font-style: italic;
+}
+
+.prose-blog .code-highlight {
+  display: block;
+  min-width: max-content;
+}
+
+.prose-blog .code-line {
+  display: block;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  border-left: 2px solid transparent;
+}
+
+.prose-blog .code-line.inserted {
+  background-color: rgba(46, 160, 67, 0.15);
+}
+
+.prose-blog .code-line.deleted {
+  background-color: rgba(248, 81, 73, 0.15);
+}

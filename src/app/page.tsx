@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { getAllPosts } from "@/lib/blog";
 
 export const metadata: Metadata = {
   title: "ormlab — Free tools for modern TypeScript ORMs",
@@ -86,7 +88,17 @@ const jsonLd = {
   },
 };
 
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 export default function Home() {
+  const posts = getAllPosts().slice(0, 3);
+
   return (
     <>
       <script
@@ -105,6 +117,9 @@ export default function Home() {
                 <a href="#tools" className="hover:text-gray-900">
                   Tools
                 </a>
+                <Link href="/blog" className="hover:text-gray-900">
+                  Blog
+                </Link>
                 <a
                   href="https://github.com/Dimonchik1710/ormlab"
                   target="_blank"
@@ -257,17 +272,54 @@ export default function Home() {
 
         {/* Articles teaser */}
         <section className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-            Guides & Articles
-          </h2>
-          <p className="text-gray-600 mb-8">
-            In-depth walkthroughs for migrating, optimizing, and debugging Drizzle schemas.
-          </p>
-          <div className="p-8 border border-dashed border-gray-300 rounded-lg text-center">
-            <p className="text-gray-500">
-              First articles coming soon — migration guides, Drizzle vs Prisma comparisons, and schema patterns.
-            </p>
+          <div className="flex items-end justify-between mb-8 flex-wrap gap-3">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                Guides & Articles
+              </h2>
+              <p className="text-gray-600">
+                In-depth walkthroughs for migrating, optimizing, and debugging Drizzle schemas.
+              </p>
+            </div>
+            {posts.length > 0 && (
+              <Link
+                href="/blog"
+                className="text-sm font-medium text-gray-900 hover:underline"
+              >
+                All posts →
+              </Link>
+            )}
           </div>
+          {posts.length === 0 ? (
+            <div className="p-8 border border-dashed border-gray-300 rounded-lg text-center">
+              <p className="text-gray-500">
+                First articles coming soon — migration guides, Drizzle vs Prisma comparisons, and schema patterns.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {posts.map((post) => (
+                <Link
+                  key={post.slug}
+                  href={`/blog/${post.slug}`}
+                  className="block h-full p-6 border border-gray-200 rounded-lg bg-white hover:border-gray-900 hover:shadow-sm transition-colors"
+                >
+                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                    {formatDate(post.date)} · {post.readingTime} min read
+                  </p>
+                  <h3 className="mt-2 text-lg font-semibold text-gray-900">
+                    {post.title}
+                  </h3>
+                  <p className="mt-2 text-sm text-gray-600 leading-relaxed line-clamp-3">
+                    {post.description}
+                  </p>
+                  <p className="mt-4 text-sm font-medium text-gray-900">
+                    Read →
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Footer */}
@@ -297,8 +349,13 @@ export default function Home() {
                 </ul>
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Resources</h3>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Learn</h3>
                 <ul className="space-y-2 text-sm text-gray-600">
+                  <li>
+                    <Link href="/blog" className="hover:text-gray-900">
+                      Blog
+                    </Link>
+                  </li>
                   <li>
                     <a
                       href="https://orm.drizzle.team"
