@@ -4,6 +4,8 @@ import { useState } from "react";
 import CodeEditor from "@/components/tools/CodeEditor";
 import CodeOutput, { OutputActions } from "@/components/tools/CodeOutput";
 import DialectSelector from "@/components/tools/DialectSelector";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 import { parseSql } from "@/lib/sql-to-drizzle/converter";
 import { formatDrizzleSchema } from "@/lib/sql-to-drizzle/formatter";
 import type { Dialect } from "@/lib/shared/types";
@@ -100,31 +102,22 @@ export default function SqlToDrizzleClient() {
   };
 
   return (
-    <main className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="border-b border-gray-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <a href="/" className="text-xl font-bold text-gray-900">
-              ormlab
-            </a>
-            <nav className="flex gap-6 text-sm text-gray-600">
-              <a href="/" className="hover:text-gray-900">
-                Home
-              </a>
-            </nav>
-          </div>
-        </div>
-      </div>
+    <main className="min-h-screen bg-white dark:bg-gray-950">
+      <Header />
 
       {/* Hero */}
       <div className="max-w-7xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
         <div className="max-w-3xl">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
             SQL to Drizzle ORM Converter
           </h1>
-          <p className="mt-3 text-lg text-gray-600">
-            Paste your PostgreSQL <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">CREATE TABLE</code> statements and get a ready-to-use Drizzle ORM schema. Works 100% in your browser — your SQL never leaves this page.
+          <p className="mt-3 text-lg text-gray-600 dark:text-gray-400">
+            Paste your PostgreSQL{" "}
+            <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded text-sm">
+              CREATE TABLE
+            </code>{" "}
+            statements and get a ready-to-use Drizzle ORM schema. Works 100% in
+            your browser — your SQL never leaves this page.
           </p>
         </div>
       </div>
@@ -137,15 +130,19 @@ export default function SqlToDrizzleClient() {
           <div className="flex gap-2">
             <button
               onClick={handleLoadExample}
-              className="px-4 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md
-                         hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium
+                         bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200
+                         border border-gray-300 dark:border-gray-700 rounded-md
+                         hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               Load example
             </button>
             <button
               onClick={handleClear}
-              className="px-4 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md
-                         hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium
+                         bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200
+                         border border-gray-300 dark:border-gray-700 rounded-md
+                         hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               Clear
             </button>
@@ -154,8 +151,12 @@ export default function SqlToDrizzleClient() {
           <button
             onClick={handleConvert}
             disabled={isConverting}
-            className="px-6 py-2 text-sm font-medium text-white bg-gray-900 rounded-md
-                       hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2 text-sm font-medium
+                       text-white dark:text-gray-900
+                       bg-gray-900 dark:bg-gray-100
+                       rounded-md
+                       hover:bg-gray-800 dark:hover:bg-white
+                       transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isConverting ? "Converting..." : "Convert →"}
           </button>
@@ -165,10 +166,14 @@ export default function SqlToDrizzleClient() {
         <div className="grid gap-x-6 gap-y-2 lg:grid-cols-2" style={{ gridTemplateRows: "2rem 24rem" }}>
           {/* Row 1: headers */}
           <div className="flex items-center justify-between h-8">
-            <label className="text-sm font-medium text-gray-700">SQL Input</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              SQL Input
+            </label>
           </div>
           <div className="flex items-center justify-between h-8">
-            <label className="text-sm font-medium text-gray-700">Drizzle Schema</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Drizzle Schema
+            </label>
             <OutputActions code={result.code} />
           </div>
 
@@ -191,122 +196,80 @@ export default function SqlToDrizzleClient() {
       </div>
 
       {/* Info section for SEO content */}
-      <section className="bg-gray-50 border-t border-gray-200">
+      <section className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
               How it works
             </h2>
-            <p className="text-gray-700 mb-4">
-              This tool parses your PostgreSQL <code className="px-1 py-0.5 bg-white rounded text-sm">CREATE TABLE</code> statements and generates equivalent Drizzle ORM schema definitions in TypeScript. The conversion happens entirely in your browser — no data is sent to any server.
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
+              This tool parses your PostgreSQL{" "}
+              <code className="px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded text-sm">
+                CREATE TABLE
+              </code>{" "}
+              statements and generates equivalent Drizzle ORM schema definitions
+              in TypeScript. The conversion happens entirely in your browser — no
+              data is sent to any server.
             </p>
 
-            <h3 className="text-xl font-semibold text-gray-900 mt-8 mb-3">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-8 mb-3">
               What&apos;s supported
             </h3>
-            <ul className="list-disc list-inside space-y-1 text-gray-700">
+            <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
               <li>Common PostgreSQL types: VARCHAR, TEXT, INTEGER, SERIAL, BIGINT, BOOLEAN, TIMESTAMP, DATE, NUMERIC, JSON, JSONB, UUID</li>
               <li>Constraints: PRIMARY KEY, UNIQUE, NOT NULL, DEFAULT, REFERENCES (foreign keys)</li>
               <li>Multiple CREATE TABLE statements in one input</li>
               <li>Inline and table-level constraints</li>
               <li>ON DELETE actions: CASCADE, SET NULL, RESTRICT, NO ACTION</li>
-              <li>DEFAULT values including <code className="px-1 py-0.5 bg-white rounded text-sm">NOW()</code> and <code className="px-1 py-0.5 bg-white rounded text-sm">CURRENT_TIMESTAMP</code></li>
+              <li>
+                DEFAULT values including{" "}
+                <code className="px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded text-sm">
+                  NOW()
+                </code>{" "}
+                and{" "}
+                <code className="px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded text-sm">
+                  CURRENT_TIMESTAMP
+                </code>
+              </li>
             </ul>
 
-            <h3 className="text-xl font-semibold text-gray-900 mt-8 mb-3">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-8 mb-3">
               Not yet supported
             </h3>
-            <ul className="list-disc list-inside space-y-1 text-gray-700">
-              <li>Composite primary/foreign keys (a warning is shown; add <code className="px-1 py-0.5 bg-white rounded text-sm">primaryKey()</code> manually)</li>
+            <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
+              <li>
+                Composite primary/foreign keys (a warning is shown; add{" "}
+                <code className="px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded text-sm">
+                  primaryKey()
+                </code>{" "}
+                manually)
+              </li>
               <li>CHECK constraints</li>
-              <li>Indexes (<code className="px-1 py-0.5 bg-white rounded text-sm">CREATE INDEX</code>)</li>
+              <li>
+                Indexes (
+                <code className="px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded text-sm">
+                  CREATE INDEX
+                </code>
+                )
+              </li>
               <li>Custom enums and user-defined types</li>
               <li>MySQL and SQLite dialects (coming soon)</li>
             </ul>
 
-            <h3 className="text-xl font-semibold text-gray-900 mt-8 mb-3">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-8 mb-3">
               Privacy
             </h3>
-            <p className="text-gray-700">
-              The converter runs entirely client-side in your browser. Your SQL input is never sent to our servers, stored, or logged. You can verify this by checking the Network tab in your browser&apos;s DevTools.
+            <p className="text-gray-700 dark:text-gray-300">
+              The converter runs entirely client-side in your browser. Your SQL
+              input is never sent to our servers, stored, or logged. You can
+              verify this by checking the Network tab in your browser&apos;s
+              DevTools.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">ormlab</h3>
-              <p className="text-sm text-gray-600">
-                Free tools for modern TypeScript ORMs.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Tools</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>
-                  <a href="/tools/sql-to-drizzle" className="hover:text-gray-900">
-                    SQL → Drizzle
-                  </a>
-                </li>
-                <li>
-                  <a href="/tools/prisma-to-drizzle" className="hover:text-gray-900">
-                    Prisma → Drizzle
-                  </a>
-                </li>
-                <li className="text-gray-400">Schema validator (soon)</li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Resources</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>
-                  <a
-                    href="https://orm.drizzle.team"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-gray-900"
-                  >
-                    Drizzle Docs ↗
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="https://github.com/drizzle-team/drizzle-orm"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-gray-900"
-                  >
-                    Drizzle on GitHub ↗
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">About</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>
-                  <a href="/" className="hover:text-gray-900">
-                    Home
-                  </a>
-                </li>
-                <li className="text-gray-400">Privacy (soon)</li>
-              </ul>
-            </div>
-          </div>
-          <div className="mt-10 pt-6 border-t border-gray-100 flex items-center justify-between flex-wrap gap-3">
-            <p className="text-xs text-gray-500">
-              © 2026 ormlab.dev · Built with Next.js, deployed on Vercel
-            </p>
-            <p className="text-xs text-gray-400">
-              Not affiliated with Drizzle Team
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }

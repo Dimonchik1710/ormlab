@@ -17,7 +17,11 @@ export default function CodeEditor({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       spellCheck={false}
-      className="w-full h-full p-4 font-mono text-sm bg-gray-50 border border-gray-300 rounded-lg
+      className="w-full h-full p-4 font-mono text-sm
+                 bg-gray-50 dark:bg-gray-900
+                 text-gray-900 dark:text-gray-100
+                 placeholder-gray-400 dark:placeholder-gray-500
+                 border border-gray-300 dark:border-gray-700 rounded-lg
                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                  resize-none block"
     />

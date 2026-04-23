@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import ThemeScript from "@/components/layout/ThemeScript";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,7 +15,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "ormlab — Free Tools for TypeScript ORMs",
-  description: "Free online tools and guides for Drizzle, Prisma, and modern TypeScript ORMs. Convert schemas, visualize relations, migrate between ORMs.",
+  description:
+    "Free online tools and guides for Drizzle, Prisma, and modern TypeScript ORMs. Convert schemas, visualize relations, migrate between ORMs.",
   keywords: ["drizzle orm", "prisma", "typescript orm", "orm tools", "sql to drizzle"],
   openGraph: {
     title: "ormlab — Free Tools for TypeScript ORMs",
@@ -36,9 +38,15 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <head>
+        <ThemeScript />
+      </head>
+      <body className="min-h-full flex flex-col bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+        {children}
+      </body>
     </html>
   );
 }

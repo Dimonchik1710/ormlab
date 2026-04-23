@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 import { getAllPosts } from "@/lib/blog";
 
 export const metadata: Metadata = {
@@ -105,70 +107,48 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <main className="min-h-screen bg-white">
-        {/* Header */}
-        <div className="border-b border-gray-200 bg-white">
-          <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between">
-              <a href="/" className="text-xl font-bold text-gray-900">
-                ormlab
-              </a>
-              <nav className="flex gap-6 text-sm text-gray-600">
-                <a href="#tools" className="hover:text-gray-900">
-                  Tools
-                </a>
-                <Link href="/blog" className="hover:text-gray-900">
-                  Blog
-                </Link>
-                <a
-                  href="https://github.com/Dimonchik1710/ormlab"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-gray-900"
-                >
-                  GitHub ↗
-                </a>
-              </nav>
-            </div>
-          </div>
-        </div>
+      <main className="min-h-screen bg-white dark:bg-gray-950">
+        <Header />
 
         {/* Hero */}
-<section className="max-w-7xl mx-auto px-4 pt-16 pb-12 sm:px-6 lg:px-8 lg:pt-24 lg:pb-16">
-  <div className="max-w-3xl mx-auto text-center">
-    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 tracking-tight">
-      Free tools for modern TypeScript ORMs
-    </h1>
-    <p className="mt-6 text-lg sm:text-xl text-gray-600 leading-relaxed">
-      Stop writing schema boilerplate. Convert SQL and Prisma schemas to Drizzle ORM in one click — free, open-source, and 100% in your browser.
-    </p>
-    <div className="mt-8 flex flex-wrap justify-center gap-3">
-      <a
-        href="/tools/sql-to-drizzle"
-        className="px-6 py-3 text-sm font-medium text-white bg-gray-900 rounded-md
-                   hover:bg-gray-800 transition-colors"
-      >
-        Try SQL → Drizzle
-      </a>
-      
-      <a
-        href="/tools/prisma-to-drizzle"
-        className="px-6 py-3 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-md
-                   hover:bg-gray-50 transition-colors"
-      >
-        Try Prisma → Drizzle
-      </a>
-    </div>
-  </div>
-</section>
+        <section className="max-w-7xl mx-auto px-4 pt-16 pb-12 sm:px-6 lg:px-8 lg:pt-24 lg:pb-16">
+          <div className="max-w-3xl mx-auto text-center">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+              Free tools for modern TypeScript ORMs
+            </h1>
+            <p className="mt-6 text-lg sm:text-xl text-gray-600 dark:text-gray-400 leading-relaxed">
+              Stop writing schema boilerplate. Convert SQL and Prisma schemas to
+              Drizzle ORM in one click — free, open-source, and 100% in your
+              browser.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <a
+                href="/tools/sql-to-drizzle"
+                className="px-6 py-3 text-sm font-medium text-white bg-gray-900 dark:bg-gray-100 dark:text-gray-900 rounded-md hover:bg-gray-800 dark:hover:bg-white transition-colors"
+              >
+                Try SQL → Drizzle
+              </a>
+              <a
+                href="/tools/prisma-to-drizzle"
+                className="px-6 py-3 text-sm font-medium text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                Try Prisma → Drizzle
+              </a>
+            </div>
+          </div>
+        </section>
 
         {/* Tools grid */}
-        <section id="tools" className="max-w-7xl mx-auto px-4 pb-16 sm:px-6 lg:px-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 text-center">
+        <section
+          id="tools"
+          className="max-w-7xl mx-auto px-4 pb-16 sm:px-6 lg:px-8 scroll-mt-20"
+        >
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 text-center">
             Tools
           </h2>
-          <p className="text-gray-600 mb-8 text-center">
-            Everything you need to work with Drizzle ORM. No signup, no data collection.
+          <p className="text-gray-600 dark:text-gray-400 mb-8 text-center">
+            Everything you need to work with Drizzle ORM. No signup, no data
+            collection.
           </p>
 
           <div className="grid gap-4 sm:gap-6 sm:grid-cols-2">
@@ -177,38 +157,42 @@ export default function Home() {
                 <div
                   className={`h-full p-6 border rounded-lg transition-colors ${
                     tool.available
-                      ? "border-gray-200 bg-white hover:border-gray-900 hover:shadow-sm"
-                      : "border-gray-200 bg-gray-50 cursor-not-allowed"
+                      ? "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-900 dark:hover:border-gray-500 hover:shadow-sm"
+                      : "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 cursor-not-allowed"
                   }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <h3
                       className={`text-lg font-semibold ${
-                        tool.available ? "text-gray-900" : "text-gray-400"
+                        tool.available
+                          ? "text-gray-900 dark:text-gray-100"
+                          : "text-gray-400 dark:text-gray-600"
                       }`}
                     >
                       {tool.title}
                     </h3>
                     {tool.badge && (
-                      <span className="px-2 py-0.5 text-xs font-medium bg-gray-900 text-white rounded">
+                      <span className="px-2 py-0.5 text-xs font-medium bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded">
                         {tool.badge}
                       </span>
                     )}
                     {!tool.available && (
-                      <span className="px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-600 rounded">
+                      <span className="px-2 py-0.5 text-xs font-medium bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">
                         Soon
                       </span>
                     )}
                   </div>
                   <p
                     className={`text-sm leading-relaxed ${
-                      tool.available ? "text-gray-600" : "text-gray-400"
+                      tool.available
+                        ? "text-gray-600 dark:text-gray-400"
+                        : "text-gray-400 dark:text-gray-600"
                     }`}
                   >
                     {tool.description}
                   </p>
                   {tool.available && (
-                    <p className="mt-4 text-sm font-medium text-gray-900">
+                    <p className="mt-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                       Try it →
                     </p>
                   )}
@@ -227,39 +211,41 @@ export default function Home() {
         </section>
 
         {/* Why this site */}
-        <section className="bg-gray-50 border-t border-gray-200">
+        <section className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
           <div className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">
               Why ormlab
             </h2>
             <div className="grid gap-8 sm:grid-cols-3">
               <div>
-                <h3 className="text-base font-semibold text-gray-900 mb-2">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">
                   Privacy first
                 </h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  All tools run 100% in your browser. Your schemas, SQL, and code never touch our servers. Verify it yourself in DevTools.
+                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                  All tools run 100% in your browser. Your schemas, SQL, and
+                  code never touch our servers. Verify it yourself in DevTools.
                 </p>
               </div>
               <div>
-                <h3 className="text-base font-semibold text-gray-900 mb-2">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">
                   No signup, no cookies
                 </h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  No accounts to create, no tracking cookies. Just working tools that do one thing well.
+                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                  No accounts to create, no tracking cookies. Just working tools
+                  that do one thing well.
                 </p>
               </div>
               <div>
-                <h3 className="text-base font-semibold text-gray-900 mb-2">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">
                   Open-source
                 </h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
+                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                   Every tool is{" "}
                   <a
                     href="https://github.com/Dimonchik1710/ormlab"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="underline hover:text-gray-900"
+                    className="underline hover:text-gray-900 dark:hover:text-gray-100"
                   >
                     MIT-licensed on GitHub
                   </a>
@@ -274,26 +260,28 @@ export default function Home() {
         <section className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-8 flex-wrap gap-3">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                 Guides & Articles
               </h2>
-              <p className="text-gray-600">
-                In-depth walkthroughs for migrating, optimizing, and debugging Drizzle schemas.
+              <p className="text-gray-600 dark:text-gray-400">
+                In-depth walkthroughs for migrating, optimizing, and debugging
+                Drizzle schemas.
               </p>
             </div>
             {posts.length > 0 && (
               <Link
                 href="/blog"
-                className="text-sm font-medium text-gray-900 hover:underline"
+                className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:underline"
               >
                 All posts →
               </Link>
             )}
           </div>
           {posts.length === 0 ? (
-            <div className="p-8 border border-dashed border-gray-300 rounded-lg text-center">
-              <p className="text-gray-500">
-                First articles coming soon — migration guides, Drizzle vs Prisma comparisons, and schema patterns.
+            <div className="p-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg text-center">
+              <p className="text-gray-500 dark:text-gray-400">
+                First articles coming soon — migration guides, Drizzle vs Prisma
+                comparisons, and schema patterns.
               </p>
             </div>
           ) : (
@@ -302,18 +290,18 @@ export default function Home() {
                 <Link
                   key={post.slug}
                   href={`/blog/${post.slug}`}
-                  className="block h-full p-6 border border-gray-200 rounded-lg bg-white hover:border-gray-900 hover:shadow-sm transition-colors"
+                  className="block h-full p-6 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900 hover:border-gray-900 dark:hover:border-gray-500 hover:shadow-sm transition-colors"
                 >
-                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     {formatDate(post.date)} · {post.readingTime} min read
                   </p>
-                  <h3 className="mt-2 text-lg font-semibold text-gray-900">
+                  <h3 className="mt-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
                     {post.title}
                   </h3>
-                  <p className="mt-2 text-sm text-gray-600 leading-relaxed line-clamp-3">
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-3">
                     {post.description}
                   </p>
-                  <p className="mt-4 text-sm font-medium text-gray-900">
+                  <p className="mt-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                     Read →
                   </p>
                 </Link>
@@ -322,89 +310,7 @@ export default function Home() {
           )}
         </section>
 
-        {/* Footer */}
-        <footer className="border-t border-gray-200 bg-white">
-          <div className="max-w-7xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">ormlab</h3>
-                <p className="text-sm text-gray-600">
-                  Free tools for modern TypeScript ORMs.
-                </p>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Tools</h3>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li>
-                    <a href="/tools/sql-to-drizzle" className="hover:text-gray-900">
-                      SQL → Drizzle
-                    </a>
-                  </li>
-                  <li>
-                    <a href="/tools/prisma-to-drizzle" className="hover:text-gray-900">
-                      Prisma → Drizzle
-                    </a>
-                  </li>
-                  <li className="text-gray-400">Schema validator (soon)</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Learn</h3>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li>
-                    <Link href="/blog" className="hover:text-gray-900">
-                      Blog
-                    </Link>
-                  </li>
-                  <li>
-                    <a
-                      href="https://orm.drizzle.team"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-gray-900"
-                    >
-                      Drizzle Docs ↗
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="https://github.com/drizzle-team/drizzle-orm"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-gray-900"
-                    >
-                      Drizzle on GitHub ↗
-                    </a>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">About</h3>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li>
-                    <a
-                      href="https://github.com/Dimonchik1710/ormlab"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-gray-900"
-                    >
-                      Source code ↗
-                    </a>
-                  </li>
-                  <li className="text-gray-400">Privacy (soon)</li>
-                </ul>
-              </div>
-            </div>
-            <div className="mt-10 pt-6 border-t border-gray-100 flex items-center justify-between flex-wrap gap-3">
-              <p className="text-xs text-gray-500">
-                © 2026 ormlab.dev · Built with Next.js, deployed on Vercel
-              </p>
-              <p className="text-xs text-gray-400">
-                Not affiliated with Drizzle Team or Prisma
-              </p>
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </main>
     </>
   );

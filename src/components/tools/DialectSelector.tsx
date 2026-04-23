@@ -25,7 +25,7 @@ export default function DialectSelector({
     <div className="flex flex-col">
       <label
         htmlFor="dialect-select"
-        className="text-sm font-medium text-gray-700 mb-2"
+        className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
       >
         {label}
       </label>
@@ -33,7 +33,10 @@ export default function DialectSelector({
         id="dialect-select"
         value={value}
         onChange={(e) => onChange(e.target.value as Dialect)}
-        className="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm
+        className="px-3 py-2 text-sm
+                   bg-white dark:bg-gray-900
+                   text-gray-900 dark:text-gray-100
+                   border border-gray-300 dark:border-gray-700 rounded-md
                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                    cursor-pointer"
       >

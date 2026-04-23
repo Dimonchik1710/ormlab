@@ -23,11 +23,11 @@ export default function CodeOutput({ code, warnings = [], errors = [] }: CodeOut
   return (
     <div className="w-full h-full">
       {errors.length > 0 && (
-        <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm font-medium text-red-800 mb-1">
+        <div className="mb-3 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg">
+          <p className="text-sm font-medium text-red-800 dark:text-red-300 mb-1">
             {errors.length === 1 ? "Error" : "Errors"}
           </p>
-          <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
+          <ul className="text-sm text-red-700 dark:text-red-400 list-disc list-inside space-y-1">
             {errors.map((err, i) => (
               <li key={i}>{err}</li>
             ))}
@@ -36,11 +36,11 @@ export default function CodeOutput({ code, warnings = [], errors = [] }: CodeOut
       )}
 
       {warnings.length > 0 && (
-        <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-sm font-medium text-yellow-800 mb-1">
+        <div className="mb-3 p-3 bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-900 rounded-lg">
+          <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300 mb-1">
             {warnings.length === 1 ? "Warning" : "Warnings"}
           </p>
-          <ul className="text-sm text-yellow-700 list-disc list-inside space-y-1">
+          <ul className="text-sm text-yellow-700 dark:text-yellow-400 list-disc list-inside space-y-1">
             {warnings.map((w, i) => (
               <li key={i}>{w}</li>
             ))}
@@ -55,8 +55,8 @@ export default function CodeOutput({ code, warnings = [], errors = [] }: CodeOut
           </code>
         </pre>
       ) : (
-        <div className="h-full w-full p-4 bg-gray-50 border border-gray-300 rounded-lg
-                        flex items-center justify-center text-gray-400 text-sm">
+        <div className="h-full w-full p-4 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg
+                        flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
           Paste SQL on the left and click Convert
         </div>
       )}
@@ -100,16 +100,22 @@ export function OutputActions({ code }: OutputActionsProps) {
       <button
         onClick={handleCopy}
         disabled={!code}
-        className="px-3 py-1 text-xs font-medium bg-white border border-gray-300 rounded-md
-                   hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        className="px-3 py-1 text-xs font-medium
+                   bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200
+                   border border-gray-300 dark:border-gray-700 rounded-md
+                   hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors
+                   disabled:opacity-40 disabled:cursor-not-allowed"
       >
         {copied ? "Copied!" : "Copy"}
       </button>
       <button
         onClick={handleDownload}
         disabled={!code}
-        className="px-3 py-1 text-xs font-medium bg-white border border-gray-300 rounded-md
-                   hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        className="px-3 py-1 text-xs font-medium
+                   bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200
+                   border border-gray-300 dark:border-gray-700 rounded-md
+                   hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors
+                   disabled:opacity-40 disabled:cursor-not-allowed"
       >
         Download
       </button>

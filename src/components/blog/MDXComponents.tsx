@@ -23,7 +23,7 @@ function flattenChildren(node: ReactNode): string {
 export const mdxComponents: MDXComponents = {
   h1: ({ children, ...props }: ComponentPropsWithoutRef<"h1">) => (
     <h1
-      className="mt-12 mb-6 text-3xl sm:text-4xl font-bold tracking-tight text-gray-900"
+      className="mt-12 mb-6 text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-100"
       {...props}
     >
       {children}
@@ -34,7 +34,7 @@ export const mdxComponents: MDXComponents = {
     return (
       <h2
         id={id}
-        className="mt-14 mb-5 text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900 scroll-mt-20"
+        className="mt-14 mb-5 text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 scroll-mt-20"
         {...props}
       >
         {children}
@@ -46,7 +46,7 @@ export const mdxComponents: MDXComponents = {
     return (
       <h3
         id={id}
-        className="mt-10 mb-3 text-xl sm:text-2xl font-semibold text-gray-900 scroll-mt-20"
+        className="mt-10 mb-3 text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 scroll-mt-20"
         {...props}
       >
         {children}
@@ -55,14 +55,17 @@ export const mdxComponents: MDXComponents = {
   },
   h4: ({ children, ...props }: ComponentPropsWithoutRef<"h4">) => (
     <h4
-      className="mt-8 mb-2 text-lg font-semibold text-gray-900"
+      className="mt-8 mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100"
       {...props}
     >
       {children}
     </h4>
   ),
   p: ({ children, ...props }: ComponentPropsWithoutRef<"p">) => (
-    <p className="my-5 text-[17px] leading-[1.75] text-gray-700" {...props}>
+    <p
+      className="my-5 text-[17px] leading-[1.75] text-gray-700 dark:text-gray-300"
+      {...props}
+    >
       {children}
     </p>
   ),
@@ -73,7 +76,7 @@ export const mdxComponents: MDXComponents = {
         href={href}
         target={isExternal ? "_blank" : undefined}
         rel={isExternal ? "noopener noreferrer" : undefined}
-        className="text-gray-900 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900 transition-colors"
+        className="text-gray-900 dark:text-gray-100 underline decoration-gray-300 dark:decoration-gray-600 underline-offset-4 hover:decoration-gray-900 dark:hover:decoration-gray-100 transition-colors"
         {...props}
       >
         {children}
@@ -82,7 +85,7 @@ export const mdxComponents: MDXComponents = {
   },
   ul: ({ children, ...props }: ComponentPropsWithoutRef<"ul">) => (
     <ul
-      className="my-5 ml-6 list-disc space-y-2 text-[17px] leading-[1.75] text-gray-700 marker:text-gray-400"
+      className="my-5 ml-6 list-disc space-y-2 text-[17px] leading-[1.75] text-gray-700 dark:text-gray-300 marker:text-gray-400 dark:marker:text-gray-600"
       {...props}
     >
       {children}
@@ -90,7 +93,7 @@ export const mdxComponents: MDXComponents = {
   ),
   ol: ({ children, ...props }: ComponentPropsWithoutRef<"ol">) => (
     <ol
-      className="my-5 ml-6 list-decimal space-y-2 text-[17px] leading-[1.75] text-gray-700 marker:text-gray-400"
+      className="my-5 ml-6 list-decimal space-y-2 text-[17px] leading-[1.75] text-gray-700 dark:text-gray-300 marker:text-gray-400 dark:marker:text-gray-600"
       {...props}
     >
       {children}
@@ -106,7 +109,7 @@ export const mdxComponents: MDXComponents = {
     ...props
   }: ComponentPropsWithoutRef<"blockquote">) => (
     <blockquote
-      className="my-6 border-l-4 border-gray-900 bg-gray-50 px-5 py-3 text-gray-700 italic"
+      className="my-6 border-l-4 border-gray-900 dark:border-gray-100 bg-gray-50 dark:bg-gray-900 px-5 py-3 text-gray-700 dark:text-gray-300 italic"
       {...props}
     >
       {children}
@@ -115,7 +118,8 @@ export const mdxComponents: MDXComponents = {
   code: ({ children, className, ...props }: ComponentPropsWithoutRef<"code">) => {
     // Block code (inside <pre>) is detected by rehype-prism-plus adding "language-*" class.
     // Leave it alone so the Prism theme can style it on a dark background.
-    const isBlock = typeof className === "string" && className.includes("language-");
+    const isBlock =
+      typeof className === "string" && className.includes("language-");
     if (isBlock) {
       return (
         <code className={className} {...props}>
@@ -125,7 +129,7 @@ export const mdxComponents: MDXComponents = {
     }
     return (
       <code
-        className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[0.9em] text-gray-900 before:content-none after:content-none"
+        className="rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 font-mono text-[0.9em] text-gray-900 dark:text-gray-100 before:content-none after:content-none"
         {...props}
       >
         {children}
@@ -142,7 +146,7 @@ export const mdxComponents: MDXComponents = {
     </pre>
   ),
   hr: (props: ComponentPropsWithoutRef<"hr">) => (
-    <hr className="my-10 border-gray-200" {...props} />
+    <hr className="my-10 border-gray-200 dark:border-gray-800" {...props} />
   ),
   table: ({ children, ...props }: ComponentPropsWithoutRef<"table">) => (
     <div className="my-8 overflow-x-auto">
@@ -155,13 +159,16 @@ export const mdxComponents: MDXComponents = {
     </div>
   ),
   thead: ({ children, ...props }: ComponentPropsWithoutRef<"thead">) => (
-    <thead className="border-b-2 border-gray-300 bg-gray-50" {...props}>
+    <thead
+      className="border-b-2 border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900"
+      {...props}
+    >
       {children}
     </thead>
   ),
   th: ({ children, ...props }: ComponentPropsWithoutRef<"th">) => (
     <th
-      className="px-4 py-3 text-sm font-semibold text-gray-900"
+      className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100"
       {...props}
     >
       {children}
@@ -169,14 +176,17 @@ export const mdxComponents: MDXComponents = {
   ),
   td: ({ children, ...props }: ComponentPropsWithoutRef<"td">) => (
     <td
-      className="border-b border-gray-200 px-4 py-3 text-gray-700"
+      className="border-b border-gray-200 dark:border-gray-800 px-4 py-3 text-gray-700 dark:text-gray-300"
       {...props}
     >
       {children}
     </td>
   ),
   strong: ({ children, ...props }: ComponentPropsWithoutRef<"strong">) => (
-    <strong className="font-semibold text-gray-900" {...props}>
+    <strong
+      className="font-semibold text-gray-900 dark:text-gray-100"
+      {...props}
+    >
       {children}
     </strong>
   ),
