@@ -61,11 +61,12 @@ const TOOLS: Tool[] = [
     badge: "New",
   },
   {
-    href: "#",
+    href: "/tools/schema-validator",
     title: "Schema Validator",
     description:
       "Paste your Drizzle schema to check syntax, detect common issues, and get improvement suggestions.",
-    available: false,
+    available: true,
+    badge: "New",
   },
   {
     href: "#",
