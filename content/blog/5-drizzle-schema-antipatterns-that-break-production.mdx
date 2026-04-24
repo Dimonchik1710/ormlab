@@ -1,0 +1,221 @@
+---
+title: "5 Drizzle ORM Schema Antipatterns That Will Break Your Production"
+description: "Five Drizzle ORM schema mistakes we keep seeing in real codebases — missing primary keys, type-mismatched foreign keys, mixed dialects, duplicate names, and sneaky nullable PKs. With fixes and a validator you can paste your schema into."
+date: "2026-04-24"
+author: "ormlab"
+tags: ["drizzle", "schema", "antipatterns", "typescript", "orm", "postgres"]
+keywords:
+  - "drizzle schema antipatterns"
+  - "drizzle orm best practices"
+  - "drizzle primary key"
+  - "drizzle foreign key type mismatch"
+  - "drizzle schema validator"
+  - "drizzle schema errors"
+  - "drizzle orm mistakes"
+  - "drizzle relations"
+canonical: "https://ormlab.dev/blog/5-drizzle-schema-antipatterns-that-break-production"
+---
+
+Drizzle doesn't ship guardrails. There's no `prisma validate`, no opinionated schema linter, no CLI that yells at you when your foreign key references a column of the wrong type. You write TypeScript, it compiles, `drizzle-kit` emits SQL, and the first time the bug shows up is usually 03:17 AM on a Tuesday when the on-call engineer is staring at a duplicate-key violation that shouldn't exist.
+
+This post walks through five **Drizzle ORM schema antipatterns** we keep finding in real production code — from small-team SaaS apps to mid-sized B2B platforms migrating off Prisma. Each one is a mistake the TypeScript compiler is totally happy with. Each one has either bitten somebody on-call, or will.
+
+If you'd rather just paste your schema and get a list of problems, jump straight to the [Drizzle Schema Validator](/tools/schema-validator) — it checks every pattern below plus a few more. Otherwise, read on.
+
+## Antipattern 1: The missing primary key
+
+The single most common Drizzle mistake: defining a table with no primary key at all. Drizzle will happily let you do it:
+
+```ts
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+
+export const auditLog = pgTable("audit_log", {
+  actorId: text("actor_id").notNull(),
+  action: text("action").notNull(),
+  payload: text("payload"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+```
+
+`drizzle-kit generate` turns that into a valid `CREATE TABLE`. Postgres doesn't complain. Your CI is green. And then three weeks later somebody tries to set up logical replication and discovers that Postgres refuses to replicate tables without a primary key (or a `REPLICA IDENTITY FULL`). Or your product team wires the table to Supabase Realtime and hits the same wall. Or a junior engineer writes `DELETE FROM audit_log WHERE id = ?` and realizes there is no `id`.
+
+The fix is one line:
+
+```ts
+import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+
+export const auditLog = pgTable("audit_log", {
+  id: serial("id").primaryKey(),
+  actorId: text("actor_id").notNull(),
+  action: text("action").notNull(),
+  payload: text("payload"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+```
+
+If the table is genuinely a join table with a composite key, use the table-level helper — don't just skip the primary key:
+
+```ts
+import { integer, pgTable, primaryKey } from "drizzle-orm/pg-core";
+
+export const usersToGroups = pgTable(
+  "users_to_groups",
+  {
+    userId: integer("user_id").notNull(),
+    groupId: integer("group_id").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.groupId] })],
+);
+```
+
+The rule is: **every table has a primary key**. No exceptions. Append-only event tables included.
+
+## Antipattern 2: Foreign keys with mismatched types
+
+This one is the reason we built a validator in the first place. Drizzle's `references()` takes a column reference, but it doesn't compare types between the two columns. So you can write this, and it will compile:
+
+```ts
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+});
+
+export const posts = pgTable("posts", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  // authorId is TEXT — but users.id is SERIAL (integer)
+  authorId: text("author_id")
+    .notNull()
+    .references(() => users.id),
+});
+```
+
+`drizzle-kit` will happily emit a `FOREIGN KEY` constraint, and then Postgres will reject the migration with `foreign key constraint "posts_author_id_users_id_fk" cannot be implemented / key columns have incompatible types`. If you're lucky this happens on your laptop. If you're unlucky it happens when CI runs migrations against a staging database that nobody rebuilds from scratch, and it silently fails in a way that leaves half your constraints missing.
+
+The fix is to match the **column type family** on both sides:
+
+```ts
+export const posts = pgTable("posts", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  authorId: integer("author_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+});
+```
+
+A quick reference — these Drizzle column builders are compatible with each other:
+
+| Family | Builders |
+| --- | --- |
+| Integer PKs | `serial`, `bigserial`, `integer`, `bigint` |
+| Text | `text`, `varchar`, `char` |
+| UUID | `uuid` |
+| Timestamp | `timestamp`, `timestamptz` |
+
+If your PK is `uuid("id").primaryKey().defaultRandom()`, every FK to it must also be `uuid(...)`. If the PK is `serial`, every FK must be `integer` (not `serial` — you don't want two sequences).
+
+## Antipattern 3: Mixing dialects in the same file
+
+Drizzle publishes `pg-core`, `mysql-core`, and `sqlite-core`. They look almost identical, and the autocomplete will cheerfully suggest the wrong one when you're pasting code from Stack Overflow at 11 PM.
+
+```ts
+// schema.ts — this is NOT a thing
+import { pgTable, serial, text } from "drizzle-orm/pg-core";
+import { mysqlTable, int, varchar } from "drizzle-orm/mysql-core";
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+});
+
+// Oops — copy-pasted from a MySQL example
+export const sessions = mysqlTable("sessions", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id").notNull(),
+});
+```
+
+This compiles. Your IDE won't complain. But `drizzle-kit` configured for Postgres will silently ignore `mysqlTable` calls when generating migrations — meaning the `sessions` table never gets created, and the first query against it blows up with `relation "sessions" does not exist`. Worse: you might not notice until a new environment is provisioned from scratch, because your dev database already has the table from a previous one-off script.
+
+The rule: **one dialect per project**. Pick `pg-core`, `mysql-core`, or `sqlite-core` once, and use only that module across your schema files. Foreign keys across dialects are nonsensical by definition — a `pgTable` can't reference a `mysqlTable` because they're not even the same database.
+
+## Antipattern 4: Duplicate table or column names
+
+This one hides in refactors. Somebody renames a TypeScript variable but forgets to update the SQL name string:
+
+```ts
+// Team A writes this:
+export const accounts = pgTable("accounts", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+});
+
+// Team B, a month later, in a different file:
+export const organizations = pgTable("accounts", {
+  // ^^^^^^^^^^^^^^^ oops — same SQL table name
+  id: serial("id").primaryKey(),
+  orgName: text("org_name").notNull(),
+});
+```
+
+TypeScript sees two different `const` bindings and shrugs. `drizzle-kit generate` sees two tables with the same name and produces a migration that creates `accounts` twice — which the database rejects, but only after half your migration has run. If you use `drizzle-kit push` instead of checked-in migrations, the symptom is even weirder: whichever table was defined last wins, and the other one silently disappears from the generated SQL.
+
+The same trap exists at the column level:
+
+```ts
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  total: integer("total"),
+  total_cents: integer("total"), // same SQL name, different TS key
+});
+```
+
+Again: TypeScript is fine, migration explodes. The fix is boring: use a consistent naming helper, and lean on tooling to catch collisions before they ship. Both of these are what a schema validator exists for.
+
+## Antipattern 5: Nullable primary keys and the "optional id" trap
+
+Drizzle treats `primaryKey()` as implicitly `NOT NULL` at the SQL level, but the **TypeScript inferred type** is driven by your builder chain. If you write this:
+
+```ts
+export const users = pgTable("users", {
+  id: integer("id").primaryKey(), // no .notNull()
+  email: text("email").notNull(),
+});
+```
+
+Drizzle emits `id INTEGER PRIMARY KEY NOT NULL` in SQL — good — but in some Drizzle versions the inferred `InferSelectModel<typeof users>` type has `id: number | null` because `notNull()` wasn't present in the chain. That means every piece of code downstream that touches `user.id` now has to `if (user.id !== null)` for no reason, or worse, somebody adds a `!` non-null assertion and moves on.
+
+Two fixes, pick either:
+
+```ts
+// Explicit — my preferred option
+export const users = pgTable("users", {
+  id: integer("id").primaryKey().notNull(),
+  email: text("email").notNull(),
+});
+
+// Or use serial which implies NOT NULL
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+});
+```
+
+The same trap shows up with `.default()` on a PK column — if you rely on the database to generate the id, Drizzle's `InferInsertModel` correctly makes `id` optional on insert, but only if your chain makes that clear. Be explicit: `primaryKey()` + `notNull()` + `default(...)` or `defaultRandom()` for UUIDs. Three-word chains catch more bugs than two-word chains.
+
+## How to catch all of these before production
+
+The unifying theme: every antipattern here is invisible to TypeScript and invisible to Drizzle itself. `drizzle-kit generate` will emit SQL and hope for the best. Your CI will run migrations in an empty database, not a shared one. The first time anything pushes back is when Postgres rejects a constraint, or a replication slot refuses to start, or a schema-aware library like Supabase Realtime hits a table with no identity column.
+
+You have three ways to catch these:
+
+1. **Code review.** Works until your team gets above four people or Friday afternoon happens.
+2. **Integration tests that run real migrations against a real database.** Catches everything, but takes CI time and infrastructure.
+3. **Static schema analysis.** Fast, free, runs in your editor or in a PR check.
+
+That third bucket is exactly what the [Drizzle Schema Validator](/tools/schema-validator) does. Paste your schema file, hit validate, and you get a line-by-line list of missing primary keys, type-mismatched foreign keys, dialect mix-ups, duplicate names, and a few more checks we didn't cover here. It runs 100% in your browser — your schema never leaves the page — and it's open source. Use it next time you're reviewing a PR, before you merge a schema change, or as a pre-commit hook if you want to get fancy.
+
+Good schemas are boring. Boring is the goal.
+
+→ [Open the Drizzle Schema Validator](/tools/schema-validator)
