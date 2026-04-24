@@ -42,6 +42,14 @@ export default function Footer() {
                   Schema Validator
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/tools/type-reference"
+                  className="hover:text-gray-900 dark:hover:text-gray-100"
+                >
+                  Type Reference
+                </Link>
+              </li>
             </ul>
           </div>
           <div>

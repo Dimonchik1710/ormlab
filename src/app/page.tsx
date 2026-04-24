@@ -69,11 +69,11 @@ const TOOLS: Tool[] = [
     badge: "New",
   },
   {
-    href: "#",
+    href: "/tools/type-reference",
     title: "Type Reference",
     description:
       "Quick lookup table for SQL types to Drizzle ORM types across PostgreSQL, MySQL, and SQLite.",
-    available: false,
+    available: true,
   },
 ];
 
