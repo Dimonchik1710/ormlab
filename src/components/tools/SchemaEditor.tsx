@@ -159,28 +159,26 @@ export default function SchemaEditor({
         </div>
       </div>
 
-      {/* Inline badges per line with issue count */}
-      <div className="pointer-events-none absolute top-0 right-0 py-4 pr-2 flex flex-col gap-0 font-mono text-xs leading-5">
-        {/* This column uses the same lineHeight of 20px — but it is not scroll-synced;
-            the gutter dots are the primary indicator. Keeping this empty to avoid desync. */}
-      </div>
+    </div>
+  );
+}
 
-      {issues.length > 0 && (
-        <div className="absolute top-2 right-2 flex gap-1 text-xs">
-          {(["error", "warning", "info"] as Issue["severity"][]).map((sev) => {
-            const count = issues.filter((i) => i.severity === sev).length;
-            if (count === 0) return null;
-            return (
-              <span
-                key={sev}
-                className={`px-2 py-0.5 rounded font-medium ${severityClass(sev)}`}
-              >
-                {count} {sev}
-              </span>
-            );
-          })}
-        </div>
-      )}
+export function SchemaIssueBadges({ issues }: { issues: Issue[] }) {
+  if (issues.length === 0) return null;
+  return (
+    <div className="flex gap-1 text-xs">
+      {(["error", "warning", "info"] as Issue["severity"][]).map((sev) => {
+        const count = issues.filter((i) => i.severity === sev).length;
+        if (count === 0) return null;
+        return (
+          <span
+            key={sev}
+            className={`px-2 py-0.5 rounded font-medium ${severityClass(sev)}`}
+          >
+            {count} {sev}
+          </span>
+        );
+      })}
     </div>
   );
 }

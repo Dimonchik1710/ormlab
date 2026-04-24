@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import SchemaEditor from "@/components/tools/SchemaEditor";
+import SchemaEditor, { SchemaIssueBadges } from "@/components/tools/SchemaEditor";
 import IssueList from "@/components/tools/IssueList";
 import { validateSchema } from "@/lib/schema-validator/validator";
 
@@ -104,10 +104,11 @@ export default function SchemaValidatorClient() {
         </div>
 
         <div className="grid gap-x-6 gap-y-2 lg:grid-cols-2" style={{ gridTemplateRows: "2rem 28rem" }}>
-          <div className="flex items-center h-8">
+          <div className="flex items-center justify-between h-8">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Drizzle Schema
             </label>
+            <SchemaIssueBadges issues={result.issues} />
           </div>
           <div className="flex items-center h-8">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
