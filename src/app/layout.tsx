@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import ThemeScript from "@/components/layout/ThemeScript";
+import BuyMeCoffeeButton from "@/components/layout/BuyMeCoffeeButton";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -46,6 +47,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
         {children}
+        <BuyMeCoffeeButton />
       </body>
     </html>
   );

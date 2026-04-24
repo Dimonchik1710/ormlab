@@ -102,6 +102,16 @@ export default function Footer() {
                   Source code ↗
                 </a>
               </li>
+              <li>
+                <a
+                  href="https://buymeacoffee.com/ormlab"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-gray-900 dark:hover:text-gray-100"
+                >
+                  Buy me a coffee ↗
+                </a>
+              </li>
               <li className="text-gray-400 dark:text-gray-600">
                 Privacy (soon)
               </li>
