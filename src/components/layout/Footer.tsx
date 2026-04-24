@@ -34,8 +34,13 @@ export default function Footer() {
                   Prisma → Drizzle
                 </Link>
               </li>
-              <li className="text-gray-400 dark:text-gray-600">
-                Schema validator (soon)
+              <li>
+                <Link
+                  href="/tools/schema-validator"
+                  className="hover:text-gray-900 dark:hover:text-gray-100"
+                >
+                  Schema Validator
+                </Link>
               </li>
             </ul>
           </div>

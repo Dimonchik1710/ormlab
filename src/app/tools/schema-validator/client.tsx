@@ -128,7 +128,7 @@ export default function SchemaValidatorClient() {
             />
           </div>
 
-          <div className="h-[28rem] overflow-auto">
+          <div className="h-[28rem]">
             {!showResults ? (
               <div className="h-full flex items-center justify-center p-6 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-500 dark:text-gray-400 text-center">
                 Paste a Drizzle schema on the left to see validation results here.

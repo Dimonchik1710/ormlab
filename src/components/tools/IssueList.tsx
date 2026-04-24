@@ -30,7 +30,7 @@ function severityBadge(severity: Issue["severity"]): {
 export default function IssueList({ issues, onSelect }: IssueListProps) {
   if (issues.length === 0) {
     return (
-      <div className="p-6 rounded-lg border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/40 text-sm text-green-800 dark:text-green-300">
+      <div className="h-full flex items-center justify-center p-6 rounded-lg border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/40 text-sm text-green-800 dark:text-green-300">
         No issues detected. Your schema looks healthy.
       </div>
     );
@@ -43,7 +43,7 @@ export default function IssueList({ issues, onSelect }: IssueListProps) {
   };
 
   return (
-    <div className="border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
+    <div className="h-full flex flex-col border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 overflow-hidden">
       <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-800 flex items-center gap-3 text-xs font-medium text-gray-600 dark:text-gray-400">
         <span>{issues.length} issue{issues.length === 1 ? "" : "s"}</span>
         {counts.error > 0 && (
@@ -62,7 +62,7 @@ export default function IssueList({ issues, onSelect }: IssueListProps) {
           </span>
         )}
       </div>
-      <ul className="divide-y divide-gray-200 dark:divide-gray-800 max-h-80 overflow-auto">
+      <ul className="flex-1 divide-y divide-gray-200 dark:divide-gray-800 overflow-auto">
         {issues.map((issue, i) => {
           const badge = severityBadge(issue.severity);
           return (
