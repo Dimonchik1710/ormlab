@@ -1,0 +1,138 @@
+---
+title: "Drizzle ORM Type Mapping: SQL to TypeScript Cheat Sheet"
+description: "A practical cheat sheet for mapping SQL column types to Drizzle ORM column builders and the TypeScript types they infer — across PostgreSQL, MySQL, and SQLite."
+date: "2026-04-25"
+author: "ormlab"
+tags: ["drizzle", "typescript", "sql", "cheat-sheet", "orm", "postgres", "mysql", "sqlite"]
+keywords:
+  - "drizzle orm types"
+  - "drizzle sql to typescript"
+  - "drizzle type mapping"
+  - "drizzle column types"
+  - "drizzle postgres types"
+  - "drizzle mysql types"
+  - "drizzle sqlite types"
+  - "drizzle cheat sheet"
+canonical: "https://ormlab.dev/blog/drizzle-orm-type-mapping-sql-to-typescript-cheat-sheet"
+---
+
+Every Drizzle column lives in three places at once: the **SQL** the migration emits, the **column builder** you call in TypeScript, and the **inferred type** your `InferSelectModel` returns. Get any one wrong and you'll find out at runtime — usually when JSON serialization quietly turns a `bigint` into `null`, or `decimal` into a string nobody expected.
+
+Here's the cheat sheet I wish I'd had when I started writing Drizzle schemas.
+
+## The rule that explains 90% of the surprises
+
+```ts
+import { pgTable, integer, bigint, decimal } from "drizzle-orm/pg-core";
+import type { InferSelectModel } from "drizzle-orm";
+
+export const orders = pgTable("orders", {
+  id: integer("id").primaryKey(),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  externalId: bigint("external_id", { mode: "number" }).notNull(),
+});
+
+type Order = InferSelectModel<typeof orders>;
+// {
+//   id: number;
+//   total: string;          // ← yes, string
+//   externalId: number;     // ← because mode: "number"
+// }
+```
+
+Two takeaways:
+
+1. `decimal` and `numeric` return **strings** — Drizzle won't silently truncate `10.50` to a JS float. Want a number? Parse it yourself or use `real`.
+2. `bigint` requires a `mode`. `"number"` is safe up to `2^53`; `"bigint"` gives you native `BigInt`. Pick once.
+
+## PostgreSQL
+
+```ts
+import { pgTable, /* … */ } from "drizzle-orm/pg-core";
+```
+
+| SQL type | Drizzle builder | TypeScript type |
+| --- | --- | --- |
+| `INTEGER` | `integer("col")` | `number` |
+| `SERIAL` | `serial("col")` | `number` |
+| `BIGINT` | `bigint("col", { mode: "number" })` | `number \| bigint` |
+| `NUMERIC(p,s)` | `numeric("col", { precision, scale })` | `string` |
+| `DECIMAL(p,s)` | `decimal("col", { precision, scale })` | `string` |
+| `REAL` | `real("col")` | `number` |
+| `BOOLEAN` | `boolean("col")` | `boolean` |
+| `TEXT` | `text("col")` | `string` |
+| `VARCHAR(n)` | `varchar("col", { length })` | `string` |
+| `UUID` | `uuid("col").defaultRandom()` | `string` |
+| `DATE` | `date("col")` | `string` |
+| `TIMESTAMP` | `timestamp("col")` | `Date` |
+| `TIMESTAMPTZ` | `timestamp("col", { withTimezone: true })` | `Date` |
+| `JSONB` | `jsonb("col").$type<Shape>()` | `Shape` |
+| `INTEGER[]` | `integer("col").array()` | `number[]` |
+
+Two traps to memorize: `numeric`/`decimal` return `string`, and `date` returns `string` by default — `timestamp` is the one that gives you a real `Date`.
+
+## MySQL
+
+```ts
+import { mysqlTable, /* … */ } from "drizzle-orm/mysql-core";
+```
+
+| SQL type | Drizzle builder | TypeScript type |
+| --- | --- | --- |
+| `INT` | `int("col")` | `number` |
+| `BIGINT` | `bigint("col", { mode: "number" })` | `number \| bigint` |
+| `SERIAL` | `serial("col")` | `number` |
+| `DOUBLE` | `double("col")` | `number` |
+| `DECIMAL(p,s)` | `decimal("col", { precision, scale })` | `string` |
+| `TINYINT(1)` | `boolean("col")` | `boolean` |
+| `TEXT` | `text("col")` | `string` |
+| `VARCHAR(n)` | `varchar("col", { length })` | `string` |
+| `DATETIME` | `datetime("col")` | `Date` |
+| `TIMESTAMP` | `timestamp("col")` | `Date` |
+| `JSON` | `json("col").$type<Shape>()` | `Shape` |
+| `ENUM(...)` | `mysqlEnum("col", ["a", "b"])` | `"a" \| "b"` |
+
+MySQL's quirk: there's no real boolean — `boolean()` is just `TINYINT(1)`.
+
+## SQLite
+
+SQLite has five storage classes, so Drizzle leans on `mode` to give you richer TypeScript types over the same underlying columns:
+
+```ts
+import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core";
+
+export const events = sqliteTable("events", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  active: integer("active", { mode: "boolean" }).notNull(),
+  occurredAt: integer("occurred_at", { mode: "timestamp" }).notNull(),
+  payload: text("payload", { mode: "json" }).$type<{ kind: string }>().notNull(),
+});
+```
+
+| SQL storage | Drizzle builder | TypeScript type |
+| --- | --- | --- |
+| `INTEGER` | `integer("col")` | `number` |
+| `INTEGER` | `integer("col", { mode: "boolean" })` | `boolean` |
+| `INTEGER` | `integer("col", { mode: "timestamp" })` | `Date` |
+| `REAL` | `real("col")` | `number` |
+| `TEXT` | `text("col")` | `string` |
+| `TEXT` | `text("col", { enum: ["a", "b"] })` | `"a" \| "b"` |
+| `TEXT` | `text("col", { mode: "json" }).$type<Shape>()` | `Shape` |
+| `BLOB` | `blob("col")` | `Buffer` |
+
+The mental model: pick the storage class first (`integer` / `text` / `blob`), then use `mode` to tell Drizzle how to (de)serialize.
+
+## Rules that apply everywhere
+
+- **Always type your JSON.** `jsonb("col").$type<MyShape>()` is the difference between `unknown` and a usable type.
+- **Pick `bigint` mode early.** Switching later means rewriting every consumer.
+- **FKs must match the type family.** If your PK is `serial` (integer), every FK must be `integer` — Drizzle won't catch the mismatch, Postgres will.
+- **Be explicit with `.notNull()` on PKs.** SQL gets `NOT NULL` either way, but the inferred TS type stays `T` instead of `T | null`.
+
+## Look it up without leaving your editor
+
+This post covers the types you'll hit 95% of the time, but the long tail is real — `interval`, `tsvector`, `cidr`, `mediumtext`, `varbinary`, SQLite's blob modes. Rather than scrolling Drizzle's docs every time, keep this open in a tab:
+
+→ [Drizzle ORM Type Reference](/tools/type-reference)
+
+Tabs for Postgres / MySQL / SQLite, live search, click-to-copy on every Drizzle method. Bookmark it and stop guessing whether `decimal` returns a `number`.
